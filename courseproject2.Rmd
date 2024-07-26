@@ -9,14 +9,226 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# "Human and Economic Consequences of Weather Events in USA"
-
-##Introduction / Synopsis
+## Introduction / Synopsis
 
 This report explore the NOAA Storm Database and answer some basic questions about severe weather events. I what follows we present two basic information. The first is the human injuries caused by the weather events. Then, we discuss the economic consequences of the same events along the whole time series starting in 1950.
 
-##Data Processing
+## Data Processing
 
 This section describes the loading and data processing in RStudio. 
 
-The first step is to 
+The first step is to downloa and load the data 
+
+```{r data processing}
+#required libraries
+library(tidyverse)
+
+#Define the URL and destination of the files
+fileUrl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+destfile <- "storm.bz2"
+
+#Download the zip file
+download.file(fileUrl, "storm.bz2", method = "curl")
+
+#Read a bz file as data.frame
+storm <- read.csv(bzfile("storm.bz2"))
+sd <- storm
+```
+
+I will now convert the data variable to date format in rbase function
+
+```{r converting date format}
+#converting date (month/day/year) and time to respective formats using lubridate
+sd <- sd |> 
+        mutate(BGN_DATE = mdy_hms(BGN_DATE))
+
+```
+
+## Results
+
+The first topic to discuss is to see the most harmful events to the population health. To do so, I use the number of fatalities and the number of injuries as proxies to harmfulness of an event. The, the basic thing to look at is the total number of injuries and fatalities in all years.
+
+```{r}
+harmful <- sd |> 
+        group_by(EVTYPE) |> 
+        summarize(total_harm = sum(FATALITIES+INJURIES)) |> 
+        arrange(desc(total_harm))
+
+print(harmful, n=20)
+
+```
+
+We can graph the results to check how the tornado is by far the most harmful weather event in causing health consequences for the US population. For the sake of visualization we show only the 15 most important.
+
+```{r}
+#Create a bar plot to make visualization easier
+#selecting only the top 15 events
+top_harm <- harmful |> 
+        slice_max(total_harm, n = 15) 
+```
+
+```{r}
+#creating the bar plot
+plot1 <-ggplot(top_harm, aes(x = reorder(EVTYPE, total_harm), y = total_harm)) +
+        geom_bar(stat = "identity") +
+        coord_flip() +  # Flip coordinates for better readability
+        labs(title = "Total Harm by Event Type",
+             x = "Event Type",
+             y = "Total Harm") +
+        theme_minimal()
+
+print(plot1)
+```
+  
+  
+As we can see below, tornado is responsible for more than 60% percent of human harm.
+
+```{r}
+#calculating the impact of each event in %
+harmful_perc <- harmful |> 
+        mutate(percentage = total_harm/sum(total_harm)*100) |> 
+                       mutate(percentage = scales::percent(percentage/100, accuracy = 0.1))
+
+print(harmful_perc, n=15)
+```
+#### Separating Fatalities and Injuries
+
+Let's look at fatalities and injuries separately creating a plot of top 10 by each one.
+
+```{r}
+## plot graphs showing the top 10 fatalities and injuries
+
+## Procedure = aggregate the top 10 fatalities by the event type and sort the output in descending order
+
+fatalities <- aggregate(FATALITIES ~ EVTYPE, data = sd, FUN = sum)
+Top10_Fatalities <- fatalities[order(-fatalities$FATALITIES), ][1:10, ] 
+Top10_Fatalities 
+```
+```{r}
+#Reviewing events that cause the most injuries ( The Top-10 Injuries by Weather Event )
+## Procedure = aggregate the top 10 injuries by the event type and sort the output in descending order
+
+Injuries <- aggregate(INJURIES ~ EVTYPE, data = sd, FUN = sum)
+Top10_Injuries <- Injuries[order(-Injuries$INJURIES), ][1:10, ] 
+Top10_Injuries 
+```
+
+```{r}
+#now the plot
+par(mfrow=c(1,2),mar=c(10,2,2,3))
+barplot(Top10_Fatalities$FATALITIES,names.arg=Top10_Fatalities$EVTYPE,las=2,col="sienna",ylab="fatalities",main="Top 10 fatalities")
+barplot(Top10_Injuries$INJURIES,names.arg=Top10_Injuries$EVTYPE,las=2,col="sienna",ylab="injuries",main="Top 10 Injuries")
+```
+
+
+
+### Exploring economic consequences of weather events
+
+
+#### Which types of events have the greatest economic consequences
+
+The procedures here are calculating the total economic damage couse by two different groups: crops and properties. To do so, we need to attribute diffente values to damages and crops.
+
+```{r}
+# Assigning values for the property exponent Storm Data
+unique(sd$PROPDMGEXP)
+
+
+        
+strmdata <- storm
+        
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "K"] <- 1000
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "M"] <- 1e+06
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == ""] <- 1
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "B"] <- 1e+09
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "m"] <- 1e+06
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "0"] <- 1
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "5"] <- 1e+05
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "6"] <- 1e+06
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "4"] <- 10000
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "2"] <- 100
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "3"] <- 1000
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "h"] <- 100
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "7"] <- 1e+07
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "H"] <- 100
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "1"] <- 10
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "8"] <- 1e+08   
+        
+#there are some invalid symbols
+        
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "+"] <- 0
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "-"] <- 0
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "?"] <- 0
+        
+        
+        
+        #Now I calculate the property damage value
+        strmdata$PROPDMGVAL <- strmdata$PROPDMG * strmdata$PROPEXP
+ 
+```
+        
+        
+#### Doing the same to damage in crops
+```{r}
+unique(strmdata$CROPDMGEXP)
+
+        # Assigning values for the crop exponent strmdata 
+        strmdata$CROPEXP[strmdata$CROPDMGEXP == "M"] <- 1e+06
+        strmdata$CROPEXP[strmdata$CROPDMGEXP == "K"] <- 1000
+        strmdata$CROPEXP[strmdata$CROPDMGEXP == "m"] <- 1e+06
+        strmdata$CROPEXP[strmdata$CROPDMGEXP == "B"] <- 1e+09
+        strmdata$CROPEXP[strmdata$CROPDMGEXP == "0"] <- 1
+        strmdata$CROPEXP[strmdata$CROPDMGEXP == "k"] <- 1000
+        strmdata$CROPEXP[strmdata$CROPDMGEXP == "2"] <- 100
+        strmdata$CROPEXP[strmdata$CROPDMGEXP == ""] <- 1
+        
+        # Assigning '0' to invalid exponent strmdata
+        strmdata$CROPEXP[strmdata$CROPDMGEXP == "?"] <- 0
+        
+        # calculating the crop damage 
+        strmdata$CROPDMGVAL <- strmdata$CROPDMG * strmdata$CROPEXP
+```
+        
+        
+#### Property Damage Summary
+        
+```{r}
+#Procedure = aggregate the property damage by the event type and sort the output it in descending order
+        
+        prop <- aggregate(PROPDMGVAL~EVTYPE,data=strmdata,FUN=sum,na.rm=TRUE)
+        prop <- prop[with(prop,order(-PROPDMGVAL)),]
+        prop <- head(prop,10)
+        print(prop)
+ 
+```
+
+#### Now crop damage Summary
+```{r}
+# Procedure = aggregate the crop damage by the event type and sort the output it in descending order
+        
+        crop <- aggregate(CROPDMGVAL~EVTYPE,data=strmdata,FUN=sum,na.rm=TRUE)
+        crop <- crop[with(crop,order(-CROPDMGVAL)),]
+        crop <- head(crop,10)
+        print(crop)
+```
+        
+In the plot below we the the final results of the top 10 property and crop damages by weather event types and its economic consequences.        
+        
+```{r}
+
+        #Now plotting the result
+        
+        # Plot of Top 10 Property & Crop damages by Weather Event Types ( Economic Consequences )
+        
+        ##plot the graph showing the top 10 property and crop damages
+        
+        par(mfrow=c(1,2),mar=c(11,3,3,2))
+        barplot(prop$PROPDMGVAL/(10^9),names.arg=prop$EVTYPE,las=2,col="blue",ylab="Prop.damage(billions)",main="Top10 Prop.Damages")
+        barplot(crop$CROPDMGVAL/(10^9),names.arg=crop$EVTYPE,las=2,col="blue",ylab="Crop damage(billions)",main="Top10 Crop.Damages")
+        
+```
+
+## Conclusion
+
+We can see that floods are the main cause of economic damage, droughts cause maximum crop damage. Hurricanes is the second main responsible for damages in property while floods are in second in causing crop damage. 
+        

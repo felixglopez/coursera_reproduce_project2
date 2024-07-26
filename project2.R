@@ -103,7 +103,7 @@ barplot(Top10_Fatalities$FATALITIES,names.arg=Top10_Fatalities$EVTYPE,las=2,col=
 barplot(Top10_Injuries$INJURIES,names.arg=Top10_Injuries$EVTYPE,las=2,col="sienna",ylab="injuries",main="Top 10 Injuries")
 
 
-# Which types of events have the greatest economic consequentes
+# Which types of events have the greatest economic consequences
 
 unique(sd$PROPDMGEXP)
 
@@ -113,7 +113,89 @@ econ_con <- sd |>
         arrange(desc(conseq)) 
 
         print(econ_con, n=20)
+
+ # Assigning values for the property exponent Storm Data
+        
+strmdata <- storm
+        
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "K"] <- 1000
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "M"] <- 1e+06
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == ""] <- 1
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "B"] <- 1e+09
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "m"] <- 1e+06
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "0"] <- 1
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "5"] <- 1e+05
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "6"] <- 1e+06
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "4"] <- 10000
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "2"] <- 100
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "3"] <- 1000
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "h"] <- 100
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "7"] <- 1e+07
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "H"] <- 100
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "1"] <- 10
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "8"] <- 1e+08   
+        
+#there are some invalid symbols
+        
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "+"] <- 0
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "-"] <- 0
+        strmdata$PROPEXP[strmdata$PROPDMGEXP == "?"] <- 0
         
         
         
+        #Now I calculate the property damage value
+        strmdata$PROPDMGVAL <- strmdata$PROPDMG * strmdata$PROPEXP
+        
+        
+        #Doing the same to damage in crops
+        
+        unique(strmdata$CROPDMGEXP)
+
+        # Assigning values for the crop exponent strmdata 
+        strmdata$CROPEXP[strmdata$CROPDMGEXP == "M"] <- 1e+06
+        strmdata$CROPEXP[strmdata$CROPDMGEXP == "K"] <- 1000
+        strmdata$CROPEXP[strmdata$CROPDMGEXP == "m"] <- 1e+06
+        strmdata$CROPEXP[strmdata$CROPDMGEXP == "B"] <- 1e+09
+        strmdata$CROPEXP[strmdata$CROPDMGEXP == "0"] <- 1
+        strmdata$CROPEXP[strmdata$CROPDMGEXP == "k"] <- 1000
+        strmdata$CROPEXP[strmdata$CROPDMGEXP == "2"] <- 100
+        strmdata$CROPEXP[strmdata$CROPDMGEXP == ""] <- 1
+        
+        # Assigning '0' to invalid exponent strmdata
+        strmdata$CROPEXP[strmdata$CROPDMGEXP == "?"] <- 0
+        
+        # calculating the crop damage 
+        strmdata$CROPDMGVAL <- strmdata$CROPDMG * strmdata$CROPEXP
+        
+        
+        # Property Damage Summary
+        
+        ## Procedure = aggregate the property damage by the event type and sort the output it in descending order
+        
+        prop <- aggregate(PROPDMGVAL~EVTYPE,data=strmdata,FUN=sum,na.rm=TRUE)
+        prop <- prop[with(prop,order(-PROPDMGVAL)),]
+        prop <- head(prop,10)
+        print(prop)
+        
+        
+        #Now crop damage Summary
+        # Crop Damage Summary
+        
+        ## Procedure = aggregate the crop damage by the event type and sort the output it in descending order
+        
+        crop <- aggregate(CROPDMGVAL~EVTYPE,data=strmdata,FUN=sum,na.rm=TRUE)
+        crop <- crop[with(crop,order(-CROPDMGVAL)),]
+        crop <- head(crop,10)
+        print(crop)
+        
+        
+        #Now plotting the result
+        
+        # Plot of Top 10 Property & Crop damages by Weather Event Types ( Economic Consequences )
+        
+        ##plot the graph showing the top 10 property and crop damages
+        
+        par(mfrow=c(1,2),mar=c(11,3,3,2))
+        barplot(prop$PROPDMGVAL/(10^9),names.arg=prop$EVTYPE,las=2,col="blue",ylab="Prop.damage(billions)",main="Top10 Prop.Damages")
+        barplot(crop$CROPDMGVAL/(10^9),names.arg=crop$EVTYPE,las=2,col="blue",ylab="Crop damage(billions)",main="Top10 Crop.Damages")
         
