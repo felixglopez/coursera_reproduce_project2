@@ -42,7 +42,7 @@ harmful <- sd |>
 print(harmful, n=20)
 
 
-#Create a bar plot to make visualization easier
+#Create a bar plot to make visualization easier (total harm)
 
 #selecting only the top 15 events
 top_harm <- harmful |> 
@@ -69,21 +69,39 @@ harmful_perc <- harmful |>
 print(harmful_perc, n=15)
 
 
-
-#Lest check the number of harms caused by tornados by year
-
-harm_tornado <-  sd |>
-        filter(EVTYPE == "TORNADO") |> 
-        group_by(BGN_DATE)|> 
-        summarize(harm = sum(FATALITIES+INJURIES))
+#look at the two separately
 
 
-ggplot(harm_tornado, aes(x = harm)) +
-        geom_histogram(binwidth=100, fill = "blue", color = "black") +
-        labs(title = "Histogram of Tornado Counts",
-             x = "Number of Tornadoes",
-             y = "Frequency") +
-        theme_minimal()
+#alternative way to look at it
+# Reviewing events that cause the most fatalities ( The Top-10 Fatalities by Weather Event )
+
+## Procedure = aggregate the top 10 fatalities by the event type and sort the output in descending order
+
+fatalities <- aggregate(FATALITIES ~ EVTYPE, data = sd, FUN = sum)
+Top10_Fatalities <- fatalities[order(-fatalities$FATALITIES), ][1:10, ] 
+Top10_Fatalities 
+
+
+#Now looking at injuries
+#Reviewing events that cause the most injuries ( The Top-10 Injuries by Weather Event )
+
+## Procedure = aggregate the top 10 injuries by the event type and sort the output in descending order
+
+Injuries <- aggregate(INJURIES ~ EVTYPE, data = sd, FUN = sum)
+Top10_Injuries <- Injuries[order(-Injuries$INJURIES), ][1:10, ] 
+Top10_Injuries 
+
+
+
+
+# Plot of Top 10 Fatalities & Injuries for Weather Event Types ( Population Health Impact )
+
+## Proecedure = plot graphs showing the top 10 fatalities and injuries
+
+par(mfrow=c(1,2),mar=c(10,3,3,2))
+barplot(Top10_Fatalities$FATALITIES,names.arg=Top10_Fatalities$EVTYPE,las=2,col="sienna",ylab="fatalities",main="Top 10 fatalities")
+barplot(Top10_Injuries$INJURIES,names.arg=Top10_Injuries$EVTYPE,las=2,col="sienna",ylab="injuries",main="Top 10 Injuries")
+
 
 # Which types of events have the greatest economic consequentes
 
