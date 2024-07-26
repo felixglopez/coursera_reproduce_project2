@@ -1,0 +1,22 @@
+---
+title: "Human and Economic Consequences of Weather Events in USA"
+author: "Felix Lopez"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# "Human and Economic Consequences of Weather Events in USA"
+
+##Introduction / Synopsis
+
+This report explore the NOAA Storm Database and answer some basic questions about severe weather events. I what follows we present two basic information. The first is the human injuries caused by the weather events. Then, we discuss the economic consequences of the same events along the whole time series starting in 1950.
+
+##Data Processing
+
+This section describes the loading and data processing in RStudio. 
+
+The first step is to 
